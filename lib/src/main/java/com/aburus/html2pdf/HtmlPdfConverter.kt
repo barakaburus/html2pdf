@@ -15,7 +15,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-private const val PDF_FOLDER_NAME = "html2pdf"
+private const val FOLDER_NAME = "html2pdf"
 
 class HtmlPdfConverter {
 
@@ -36,20 +36,23 @@ class HtmlPdfConverter {
     )
 
     suspend fun convert(context: Context, html: String, documentName: String): Uri {
-        val folder = File(context.filesDir, PDF_FOLDER_NAME)
-        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val file = File(folder, "$timeStamp.pdf")
+        val folder = File(context.filesDir, FOLDER_NAME)
+        val timestamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val file = File(folder, "$timestamp.pdf")
 
+        convert(context, html, file, documentName)
+
+        return FileProvider.getUriForFile(context, Html2Pdf.fileProviderAuthority, file)
+    }
+
+    suspend fun convert(context: Context, html: String, outputPdfFile: File, documentName: String) {
         withContext(Dispatchers.Main) {
             WebView(context).apply {
                 webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(
-                        view: WebView,
-                        request: WebResourceRequest
-                    ) = false
+                    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest) = false
 
                     override fun onPageFinished(view: WebView?, url: String?) {
-                        view?.let { webViewPdfWriter.write(view, file, documentName) }
+                        view?.let { webViewPdfWriter.write(view, outputPdfFile, documentName) }
                         super.onPageFinished(view, url)
                     }
                 }
@@ -57,7 +60,5 @@ class HtmlPdfConverter {
                 loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
             }
         }
-
-        return FileProvider.getUriForFile(context, Html2Pdf.fileProviderAuthority, file)
     }
 }
